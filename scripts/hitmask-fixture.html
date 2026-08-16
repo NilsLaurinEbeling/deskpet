@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+  Dev harness, not part of the app. Runs the real `buildHitMask` against the
+  placeholder sprite in a browser and dumps the result as JSON, so the Rust
+  hit test can be checked against a mask the frontend actually produced.
+  See scripts/gen-hitmask-fixture.mjs.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>deskpet hit mask fixture</title>
+  </head>
+  <body>
+    <pre id="out">pending</pre>
+    <script type="module">
+      import { buildHitMask } from '/src/windows/overlay/hitmask.ts';
+
+      // Mirrors PET_HEIGHT in PetStage.ts.
+      const DISPLAY = 180;
+
+      const out = document.getElementById('out');
+      const sink = new URLSearchParams(location.search).get('sink');
+      const report = (text) => {
+        out.textContent = text;
+        if (sink) {
+          void fetch(`http://localhost:${sink}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: text,
+          });
+        }
+      };
+
+      try {
+        const response = await fetch('/pet-placeholder.png');
+        const bitmap = await createImageBitmap(await response.blob());
+        const scale = DISPLAY / bitmap.height;
+        const displayWidth = bitmap.width * scale;
+
+        const bitmapMask = buildHitMask(
+          { image: bitmap, sourceWidth: bitmap.width, sourceHeight: bitmap.height },
+          { displayWidth, displayHeight: DISPLAY, flipX: false },
+        );
+
+        report(JSON.stringify({
+          source: '/pet-placeholder.png',
+          sourceWidth: bitmap.width,
+          sourceHeight: bitmap.height,
+          // The mask is anchored at the origin so fixture coordinates and
+          // logical pixels are the same thing.
+          x: 0,
+          y: 0,
+          width: displayWidth,
+          height: DISPLAY,
+          cols: bitmapMask.cols,
+          rows: bitmapMask.rows,
+          bits: bitmapMask.bits,
+        }));
+      } catch (error) {
+        report(`ERROR ${error instanceof Error ? error.message : String(error)}`);
+      }
+    </script>
+  </body>
+</html>
