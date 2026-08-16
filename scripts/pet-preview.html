@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+  Dev harness, not part of the app. Renders `PetSprite` on a checkerboard so
+  the sprite's scale, anchor and transparency can be checked in a plain
+  browser — no Tauri, no overlay window.
+
+    npx vite            →  http://localhost:1420/scripts/pet-preview.html
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>deskpet pet preview</title>
+    <style>
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        /* Checkerboard: anything the sprite leaves transparent shows through. */
+        background:
+          repeating-conic-gradient(#d7dbe6 0% 25%, #eef1f7 0% 50%) 50% / 24px 24px;
+      }
+      #stage {
+        outline: 1px dashed #8a93ab;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script type="module">
+      import { Application, Texture } from 'pixi.js';
+      import { PetSprite } from '/src/windows/overlay/PetSprite.ts';
+
+      const WIDTH = 360;
+      const HEIGHT = 320;
+      const GROUND = 300;
+
+      const app = new Application();
+      await app.init({
+        preference: 'webgl',
+        backgroundAlpha: 0,
+        width: WIDTH,
+        height: HEIGHT,
+        antialias: true,
+      });
+      document.getElementById('stage').appendChild(app.canvas);
+
+      const bitmap = await createImageBitmap(await (await fetch('/pet-placeholder.png')).blob());
+      const pet = new PetSprite(Texture.from(bitmap));
+      pet.setBaseHeight(180);
+      pet.setPosition(WIDTH / 2, GROUND);
+      app.stage.addChild(pet.view);
+      app.render();
+
+      const bounds = pet.bounds();
+      document.title = `pet ${Math.round(bounds.width)}x${Math.round(bounds.height)} at ${Math.round(bounds.x)},${Math.round(bounds.y)}`;
+    </script>
+  </body>
+</html>
