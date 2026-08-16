@@ -27,8 +27,12 @@ const TARGET_FPS = 30;
 /** Height of the placeholder pet in logical pixels. */
 const PET_HEIGHT = 180;
 
-/** Don't bother Rust with sub-pixel rectangle changes. */
-const BOUNDS_EPSILON = 0.25;
+/**
+ * Don't bother Rust with rectangle changes smaller than this. One mask cell is
+ * four logical pixels, so sub-pixel updates buy no accuracy at all — they just
+ * cost an IPC round trip on every frame the pet breathes.
+ */
+const BOUNDS_EPSILON = 1;
 
 const PLACEHOLDER_URL = '/pet-placeholder.png';
 

@@ -363,18 +363,17 @@ fn tick_once(app: &AppHandle, cursor: PhysicalPosition<f64>) {
     }
 }
 
-/// Skip the IPC round trip for sub-pixel jitter.
+/// Skip the IPC round trip for sub-pixel jitter, and for a cursor that is
+/// somewhere else entirely — the pet has nothing to react to off its monitor.
 fn changed(previous: Option<CursorEvent>, next: CursorEvent) -> bool {
-    match previous {
-        None => true,
-        Some(prev) => {
-            prev.inside != next.inside
-                || prev.over_pet != next.over_pet
-                || prev.interactive != next.interactive
-                || (prev.x - next.x).abs() >= 1.0
-                || (prev.y - next.y).abs() >= 1.0
-        }
+    let Some(prev) = previous else { return true };
+    if prev.inside != next.inside
+        || prev.over_pet != next.over_pet
+        || prev.interactive != next.interactive
+    {
+        return true;
     }
+    next.inside && ((prev.x - next.x).abs() >= 1.0 || (prev.y - next.y).abs() >= 1.0)
 }
 
 #[cfg(test)]
